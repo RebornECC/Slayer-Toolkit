@@ -48,6 +48,8 @@ namespace sk {
         l->setTag(7);
         l->setColor(ink);
         l->setScale(scale);
+        float lw = l->getContentSize().width * scale;
+        if (lw > w - 8.f) l->setScale(scale * (w - 8.f) / lw);
         l->setPosition({w / 2, h / 2 + 1.f});
         n->addChild(l, 2);
         return n;
@@ -75,5 +77,15 @@ namespace sk {
         quad(d, {352.f, 8.f}, {300.f, 8.f}, {320.f, 54.f}, {352.f, 54.f}, GRY);
         roundRect(d, 16.f, 58.f, 328.f, 182.f, 6.f, f4(SNOW));
         roundRect(d, 20.f, 62.f, 320.f, 174.f, 4.f, f4(SLT));
+    }
+
+    inline void drawHeat(CCDrawNode* d) {
+        d->clear();
+        int mx = 0;
+        for (int v : cur.hist) mx = std::max(mx, v);
+        for (int i = 0; i < 100; i++) {
+            float a = cur.hist[i] > 0 && mx > 0 ? 0.25f + 0.75f * cur.hist[i] / mx : 0.12f;
+            rect(d, i * 2.f, 0.f, 2.f, 3.f, cur.hist[i] > 0 ? f4(RED, a) : f4(GRY, a));
+        }
     }
 }
