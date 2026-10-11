@@ -8,10 +8,15 @@
  },
  "id": "rebornecc.slayertoolkit",
  "name": "Slayer Toolkit",
- "version": "v1.1.0",
+ "version": "v1.2.1",
  "developer": "RebornECC",
- "description": "For people who grind hard levels: a death graph by percent, notes tied to percents that pop up before the spot, progress stats, session stats, break reminder, retry delay, stream mode and silent mode. Opens from the pause menu.",
- "tags": ["gameplay", "utility", "interface", "offline"],
+ "description": "For people who grind hard levels: a death graph by percent, notes tied to percents that pop up before the spot, progress stats, session stats, break reminder, retry delay, stream mode, silent mode, level history and profiles. Opens from the pause menu.",
+ "tags": [
+  "gameplay",
+  "utility",
+  "interface",
+  "offline"
+ ],
  "settings": {
   "show-hints": {
    "type": "bool",
@@ -24,6 +29,39 @@
    "name": "Break reminder",
    "description": "Remind you to rest after a while of playing.",
    "default": true
+  },
+  "session-goal": {
+   "type": "int",
+   "name": "Session goal",
+   "description": "Percent you want to reach today. You get a message when you reach it. 0 turns it off.",
+   "default": 0,
+   "min": 0,
+   "max": 100
+  },
+  "tilt-warning": {
+   "type": "bool",
+   "name": "Early death warning",
+   "description": "Suggest a break after 5 deaths below 10% in a row.",
+   "default": true
+  },
+  "heat-bar": {
+   "type": "bool",
+   "name": "Death strip",
+   "description": "Show a thin strip at the top of the screen, red where you die most. Off by default.",
+   "default": false
+  },
+  "profile": {
+   "type": "string",
+   "name": "Profile",
+   "description": "A preset for retry delay, hints and breaks. Custom uses your own values below.",
+   "default": "Custom",
+   "one-of": [
+    "Custom",
+    "Wave",
+    "Ship",
+    "Timing",
+    "Marathon"
+   ]
   },
   "retry-delay": {
    "type": "float",
