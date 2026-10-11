@@ -8,7 +8,7 @@ public:
     ~SlayerPopup() override { s_open--; }
 
 protected:
-    std::array<CCNode*, 4> m_pages{};
+    std::array<CCNode*, 5> m_pages{};
     CCDrawNode* m_ul = nullptr;
     CCNode* m_list = nullptr;
     TextInput* m_pct = nullptr;
@@ -16,11 +16,11 @@ protected:
     int m_del = -1;
 
     void showPage(int i) {
-        for (int j = 0; j < 4; j++) m_pages[j]->setVisible(j == i);
+        for (int j = 0; j < 5; j++) m_pages[j]->setVisible(j == i);
         m_pct->setEnabled(i == 1);
         m_txt->setEnabled(i == 1);
         m_ul->clear();
-        sk::rect(m_ul, 72.f + i * 70.f, 239.f, 56.f, 3.f, sk::f4(sk::RED));
+        sk::rect(m_ul, 56.f + i * 60.f, 239.f, 50.f, 3.f, sk::f4(sk::RED));
     }
 
     void rebuildNotes() {
@@ -78,13 +78,14 @@ protected:
         sk::wall(m_mainLayer);
         m_ul = CCDrawNode::create();
         m_mainLayer->addChild(m_ul, 1);
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < 5; i++) {
             m_pages[i] = CCNode::create();
             m_mainLayer->addChild(m_pages[i], 2);
         }
         sk::deathsPage(m_pages[0]);
         sk::progressPage(m_pages[2]);
         sk::sessionPage(m_pages[3]);
+        sk::levelsPage(m_pages[4]);
 
         m_list = CCNode::create();
         m_pages[1]->addChild(m_list);
@@ -108,12 +109,18 @@ protected:
         auto tabs = CCMenu::create();
         tabs->setPosition({0.f, 0.f});
         m_mainLayer->addChild(tabs, 10);
-        char const* names[4] = {"Deaths", "Notes", "Progress", "Session"};
-        for (int i = 0; i < 4; i++) {
-            auto b = CCMenuItemExt::createSpriteExtra(sk::pill(names[i], sk::GRY, sk::INK, 66.f, 26.f, .3f), [this, i](auto) { this->showPage(i); });
-            b->setPosition({100.f + i * 70.f, 257.f});
+        char const* names[5] = {"Deaths", "Notes", "Progress", "Session", "Levels"};
+        for (int i = 0; i < 5; i++) {
+            auto b = CCMenuItemExt::createSpriteExtra(sk::pill(names[i], sk::GRY, sk::INK, 56.f, 26.f, .28f), [this, i](auto) { this->showPage(i); });
+            b->setPosition({81.f + i * 60.f, 257.f});
             tabs->addChild(b);
         }
+        auto copy = CCMenuItemExt::createSpriteExtra(sk::pill("Copy summary", sk::MUS, sk::INK, 130.f, 26.f, .32f), [](auto) {
+            geode::utils::clipboard::write(sk::summary());
+            Notification::create("Summary copied", NotificationIcon::Success)->show();
+        });
+        copy->setPosition({180.f, 32.f});
+        tabs->addChild(copy);
         showPage(0);
         return true;
     }
