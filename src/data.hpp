@@ -12,12 +12,34 @@ namespace sk {
         std::vector<Note> notes;
         std::vector<int> recent;
         std::vector<std::pair<int, int>> days;
+        std::string name;
     };
 
     struct Session {
         int deaths = 0, best = 0;
         float seconds = 0.f, sinceBreak = 0.f;
+        bool goalHit = false;
+        int tilt = 0;
     };
+
+    struct Cfg {
+        float delay;
+        bool hints, stream, silent;
+        int breakMin;
+    };
+
+    inline Cfg cfg() {
+        auto m = Mod::get();
+        Cfg c{(float)m->getSettingValue<double>("retry-delay"), m->getSettingValue<bool>("show-hints"),
+              m->getSettingValue<bool>("stream-mode"), m->getSettingValue<bool>("silent-mode"),
+              (int)m->getSettingValue<int64_t>("break-minutes")};
+        auto p = m->getSettingValue<std::string>("profile");
+        if (p == "Wave") { c.delay = 0.25f; c.hints = true; }
+        else if (p == "Ship") { c.delay = 0.2f; c.hints = true; }
+        else if (p == "Timing") { c.delay = 0.5f; c.hints = true; }
+        else if (p == "Marathon") { c.delay = 0.5f; c.breakMin = 30; c.stream = true; }
+        return c;
+    }
 
     inline Level cur;
     inline Session ses;
@@ -26,6 +48,7 @@ namespace sk {
     inline std::vector<int> demons;
     inline bool gLoaded = false;
     inline bool retryPending = false;
+    inline std::vector<std::pair<std::string, std::string>> levels;
     inline float origMusic = -1.f;
 
     inline std::vector<int> ints(std::string const& s) {
@@ -53,6 +76,9 @@ namespace sk {
         std::string d;
         for (int id : demons) d += std::to_string(id) + ",";
         m->setSavedValue<std::string>("g-demons", d);
+        std::string lv;
+        for (auto const& [k, n] : levels) lv += k + "|" + n + "\n";
+        m->setSavedValue<std::string>("g-levels", lv);
     }
 
     inline void loadGlobal() {
@@ -64,6 +90,16 @@ namespace sk {
         auto d = ints(m->getSavedValue<std::string>("g-deaths", ""));
         if (!d.empty()) gDeaths = d[0];
         demons = ints(m->getSavedValue<std::string>("g-demons", ""));
+        std::string lv = m->getSavedValue<std::string>("g-levels", "");
+        size_t pos = 0;
+        while (pos < lv.size()) {
+            size_t end = lv.find('\n', pos);
+            if (end == std::string::npos) end = lv.size();
+            std::string line = lv.substr(pos, end - pos);
+            pos = end + 1;
+            size_t bar = line.find('|');
+            if (bar != std::string::npos) levels.push_back({line.substr(0, bar), line.substr(bar + 1)});
+        }
     }
 
     inline void save() {
@@ -84,9 +120,20 @@ namespace sk {
         m->setSavedValue<std::string>("d-" + cur.key, dy);
     }
 
-    inline void load(std::string const& key) {
+    inline void touchLevel(std::string const& key, std::string name) {
+        for (auto& c : name) if (c == '|' || c == '\n') c = ' ';
+        for (size_t i = 0; i < levels.size(); i++) {
+            if (levels[i].first == key) { levels.erase(levels.begin() + i); break; }
+        }
+        levels.insert(levels.begin(), {key, name});
+        if (levels.size() > 20) levels.resize(20);
+    }
+
+    inline void load(std::string const& key, std::string const& name = "") {
         cur = Level{};
         cur.key = key;
+        cur.name = name;
+        if (!name.empty()) touchLevel(key, name);
         auto m = Mod::get();
         auto h = ints(m->getSavedValue<std::string>("h-" + key, ""));
         for (size_t i = 0; i < h.size() && i < 100; i++) cur.hist[i] = h[i];
@@ -121,6 +168,7 @@ namespace sk {
 
     inline void addDeath(float pct) {
         int b = std::clamp((int)pct, 0, 99);
+        int prevBest = cur.best;
         cur.hist[b]++;
         cur.deaths++;
         cur.best = std::max(cur.best, b);
@@ -130,6 +178,16 @@ namespace sk {
         record(b);
         save();
         saveGlobal();
+        if (b > prevBest && prevBest > 0) {
+            Notification::create(fmt::format("New best: {}%", b), NotificationIcon::Success)->show();
+        }
+        if (Mod::get()->getSettingValue<bool>("tilt-warning")) {
+            ses.tilt = b < 10 ? ses.tilt + 1 : 0;
+            if (ses.tilt >= 5) {
+                ses.tilt = 0;
+                Notification::create("5 early deaths in a row. A short break may help", NotificationIcon::Info)->show();
+            }
+        }
     }
 
     inline void addComplete(int levelId, bool demon) {
