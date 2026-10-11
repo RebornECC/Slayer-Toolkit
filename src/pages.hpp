@@ -56,7 +56,7 @@ namespace sk {
         float w = l->getContentSize().width * l->getScale();
         if (w > 300.f) l->setScale(l->getScale() * 300.f / w);
         bool on = Mod::get()->getSettingValue<bool>("break-reminder");
-        int every = (int)Mod::get()->getSettingValue<int64_t>("break-minutes");
+        int every = cfg().breakMin;
         std::string line = on ? fmt::format("Break reminder every {} min, next in {} min", every,
                                             std::max(0, every - (int)(ses.sinceBreak / 60.f)))
                               : "Break reminder is off in settings";
@@ -82,7 +82,7 @@ namespace sk {
         text(p, "100%", "chatFont.fnt", .45f, {337.f, 176.f}, GRY, 1.f);
         std::string rd = !any ? "Full run: play more, not enough data"
                        : weak < 0 ? "Full run: ready"
-                       : fmt::format("Full run: not yet, weakest part {}-{}%", weak * 10, weak * 10 + 10);
+                       : fmt::format("Not yet: practice from {}%, weakest {}-{}%", std::max(0, weak * 10 - 3), weak * 10, weak * 10 + 10);
         text(p, rd.c_str(), "chatFont.fnt", .65f, {180.f, 158.f}, SNOW);
         text(p, "Best percent per day", "chatFont.fnt", .55f, {180.f, 138.f}, GRY);
         if (cur.days.empty()) {
@@ -95,6 +95,42 @@ namespace sk {
             rect(d, x, 92.f, 26.f, h, f4(best >= 100 ? ccColor3B{120, 190, 130} : MUS));
             text(p, fmt::format("{}%", best).c_str(), "chatFont.fnt", .45f, {x + 13.f, 92.f + h + 7.f}, SNOW);
             text(p, fmt::format("{}/{}", (day / 100) % 100, day % 100).c_str(), "chatFont.fnt", .45f, {x + 13.f, 82.f}, GRY);
+        }
+    }
+
+    inline std::string summary() {
+        int total = 0;
+        long long sum = 0;
+        for (int i = 0; i < 100; i++) { total += cur.hist[i]; sum += (long long)i * cur.hist[i]; }
+        auto c = consistency();
+        int weak = -1;
+        for (int i = 0; i < 10; i++) if (c[i] >= 0 && c[i] < 80 && (weak < 0 || c[i] < c[weak])) weak = i;
+        std::string out = fmt::format("{}: best {}%, {} deaths, average death {}%", cur.name.empty() ? "Level" : cur.name,
+                                      cur.best, cur.deaths, total ? (int)(sum / total) : 0);
+        if (weak >= 0) out += fmt::format(", weakest part {}-{}%", weak * 10, weak * 10 + 10);
+        return out;
+    }
+
+    inline void levelsPage(CCNode* p) {
+        if (levels.empty()) {
+            text(p, "No levels yet", "bigFont.fnt", .42f, {180.f, 150.f}, SNOW);
+            return;
+        }
+        auto m = Mod::get();
+        for (size_t i = 0; i < levels.size() && i < 5; i++) {
+            float y = 212.f - i * 31.f;
+            auto st = ints(m->getSavedValue<std::string>("s-" + levels[i].first, ""));
+            int deaths = st.size() >= 2 ? st[0] : 0, best = st.size() >= 2 ? st[1] : 0;
+            bool here = levels[i].first == cur.key;
+            auto l = text(p, levels[i].second.c_str(), "bigFont.fnt", .36f, {34.f, y + 5.f}, here ? MUS : SNOW, 0.f);
+            float w = l->getContentSize().width * l->getScale();
+            if (w > 190.f) l->setScale(l->getScale() * 190.f / w);
+            text(p, fmt::format("best {}%    {} deaths", best, deaths).c_str(), "chatFont.fnt", .55f, {34.f, y - 9.f}, GRY, 0.f);
+            if (i < 4) {
+                auto d = CCDrawNode::create();
+                p->addChild(d);
+                rect(d, 34.f, y - 20.f, 304.f, 1.f, f4(SNOW, 0.15f));
+            }
         }
     }
 }
