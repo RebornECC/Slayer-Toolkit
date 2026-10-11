@@ -1,0 +1,57 @@
+{
+ "geode": "5.11.1",
+ "gd": {
+  "win": "*",
+  "android": "*",
+  "mac": "*",
+  "ios": "*"
+ },
+ "id": "rebornecc.slayertoolkit",
+ "name": "Slayer Toolkit",
+ "version": "v1.1.0",
+ "developer": "RebornECC",
+ "description": "For people who grind hard levels: a death graph by percent, notes tied to percents that pop up before the spot, progress stats, session stats, break reminder, retry delay, stream mode and silent mode. Opens from the pause menu.",
+ "tags": ["gameplay", "utility", "interface", "offline"],
+ "settings": {
+  "show-hints": {
+   "type": "bool",
+   "name": "Show note hints",
+   "description": "Show your note a few percent before the spot it belongs to.",
+   "default": true
+  },
+  "break-reminder": {
+   "type": "bool",
+   "name": "Break reminder",
+   "description": "Remind you to rest after a while of playing.",
+   "default": true
+  },
+  "retry-delay": {
+   "type": "float",
+   "name": "Retry delay",
+   "description": "Seconds to wait before the level restarts after a death. 0 keeps the normal behaviour.",
+   "default": 0.0,
+   "min": 0.0,
+   "max": 3.0
+  },
+  "stream-mode": {
+   "type": "bool",
+   "name": "Stream mode",
+   "description": "Hide the attempt counter and show only a session timer.",
+   "default": false
+  },
+  "silent-mode": {
+   "type": "bool",
+   "name": "Silent mode",
+   "description": "Turn the level music off, sound effects stay on.",
+   "default": false
+  },
+  "break-minutes": {
+   "type": "int",
+   "name": "Minutes between reminders",
+   "description": "Play time before each reminder.",
+   "default": 45,
+   "min": 10,
+   "max": 180
+  }
+ }
+}
