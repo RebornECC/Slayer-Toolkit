@@ -12,7 +12,8 @@ class $modify(SkPlayLayer, PlayLayer) {
         int id = level->m_levelID.value();
         std::string key = id > 0 ? std::to_string(id) : std::string("local_") + std::string(level->m_levelName);
         sk::loadGlobal();
-        sk::load(key);
+        sk::load(key, std::string(level->m_levelName));
+        sk::ses.goalHit = false;
         sk::lastPct = -1;
         sk::retryPending = false;
         auto win = CCDirector::get()->getWinSize();
@@ -32,11 +33,19 @@ class $modify(SkPlayLayer, PlayLayer) {
         timer->setVisible(false);
         this->addChild(timer, 1000);
         auto mod = Mod::get();
-        if (mod->getSettingValue<bool>("stream-mode") && m_attemptLabel) {
+        auto c = sk::cfg();
+        if (mod->getSettingValue<bool>("heat-bar")) {
+            auto heat = CCDrawNode::create();
+            heat->setID("slayer-heat"_spr);
+            heat->setPosition({win.width / 2 - 100.f, win.height - 5.f});
+            this->addChild(heat, 1000);
+            sk::drawHeat(heat);
+        }
+        if (c.stream && m_attemptLabel) {
             m_attemptLabel->setVisible(false);
             timer->setVisible(true);
         }
-        if (mod->getSettingValue<bool>("silent-mode")) {
+        if (c.silent) {
             auto engine = FMODAudioEngine::sharedEngine();
             if (sk::origMusic < 0.f) sk::origMusic = engine->m_musicVolume;
             engine->setBackgroundMusicVolume(0.f);
@@ -57,7 +66,7 @@ class $modify(SkPlayLayer, PlayLayer) {
     }
 
     void delayedResetLevel() {
-        float d = (float)Mod::get()->getSettingValue<double>("retry-delay");
+        float d = sk::cfg().delay;
         if (d <= 0.01f) {
             PlayLayer::delayedResetLevel();
             return;
@@ -99,16 +108,22 @@ class $modify(SkPlayLayer, PlayLayer) {
             }
         }
         auto mod = Mod::get();
+        auto c = sk::cfg();
+        int p = (int)this->getCurrentPercent();
+        int goal = (int)mod->getSettingValue<int64_t>("session-goal");
+        if (goal > 0 && !sk::ses.goalHit && p >= goal) {
+            sk::ses.goalHit = true;
+            Notification::create(fmt::format("Goal reached: {}%", goal), NotificationIcon::Success)->show();
+        }
         if (mod->getSettingValue<bool>("break-reminder")) {
-            float limit = (float)mod->getSettingValue<int64_t>("break-minutes") * 60.f;
+            float limit = (float)c.breakMin * 60.f;
             if (sk::ses.sinceBreak >= limit) {
                 sk::ses.sinceBreak = 0.f;
                 Notification::create(fmt::format("You have been playing for {} min. Time for a break", (int)(limit / 60.f)),
                                      NotificationIcon::Info)->show();
             }
         }
-        if (!mod->getSettingValue<bool>("show-hints") || sk::cur.notes.empty()) return;
-        int p = (int)this->getCurrentPercent();
+        if (!c.hints || sk::cur.notes.empty()) return;
         if (p == sk::lastPct) return;
         sk::lastPct = p;
         auto hint = typeinfo_cast<CCLabelBMFont*>(this->getChildByID("slayer-hint"_spr));
@@ -133,6 +148,7 @@ class $modify(SkPlayLayer, PlayLayer) {
         if (wasDead || !player->m_isDead || player != m_player1) return;
         if (m_isPracticeMode || m_isTestMode) return;
         sk::addDeath(this->getCurrentPercent());
+        if (auto heat = typeinfo_cast<CCDrawNode*>(this->getChildByID("slayer-heat"_spr))) sk::drawHeat(heat);
     }
 };
 
